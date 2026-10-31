@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/polarn/waybar-modules/pkg/volvo"
+	"github.com/polarn/volvo/pkg/volvo"
 )
 
 type family struct {

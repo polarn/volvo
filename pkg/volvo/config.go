@@ -54,7 +54,7 @@ type Config struct {
 	// RedirectURI is the redirect URI registered on the portal app. The
 	// portal no longer accepts localhost URIs, so this is a public page
 	// that forwards the callback query string to the localhost listener
-	// (docs/volvo-callback in this repo, served via GitHub Pages). Empty
+	// (docs/volvo-callback in polarn/waybar-modules, served via GitHub Pages). Empty
 	// → the legacy http://localhost:<port>/callback.
 	RedirectURI string `json:"redirect_uri,omitempty"`
 }

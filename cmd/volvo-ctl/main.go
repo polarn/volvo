@@ -29,8 +29,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/polarn/waybar-modules/pkg/volvo"
-	"github.com/polarn/waybar-modules/pkg/waybar"
+	"github.com/polarn/volvo/pkg/volvo"
+	"github.com/polarn/volvo/pkg/waybar"
 )
 
 // Written as escapes, not literal glyphs — editors/tools have silently

@@ -22,8 +22,8 @@ import (
 // catch the redirect on a localhost callback server. The redirect URI
 // must be registered verbatim on the developer-portal application; the
 // portal bans localhost URIs, so cfg.RedirectURI normally points at a
-// public forwarding page (docs/volvo-callback) that bounces the browser
-// on to the localhost listener.
+// public forwarding page (docs/volvo-callback in polarn/waybar-modules)
+// that bounces the browser on to the localhost listener.
 func Authenticate(cfg *Config, openBrowser bool) (*Tokens, error) {
 	ar, err := NewAuthRequest(cfg)
 	if err != nil {

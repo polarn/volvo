@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/polarn/waybar-modules/pkg/volvo"
+	"github.com/polarn/volvo/pkg/volvo"
 )
 
 const energyBody = `{

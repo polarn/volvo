@@ -1,7 +1,7 @@
 # volvo
 Volvo cloud tooling in Go: `volvo-ctl`, a CLI that also feeds a Waybar pill, and `volvo-exporter`, a Prometheus exporter that runs in Kubernetes and is the one holder of the rotating refresh token. Split out of [waybar-modules](https://github.com/polarn/waybar-modules) in October 2026; see [AGENTS.md](AGENTS.md) for the conventions and the details that are easy to get wrong.
 
-`make` builds `volvo-ctl` into `build/`; `make install` copies it to `~/.local/bin`. `volvo-exporter` is built by its container image (`polarn/container-images`), or locally with `go build ./cmd/volvo-exporter`.
+`make` builds `volvo-ctl` into `build/`; `make install` copies it to `~/.local/bin`. `volvo-exporter` is built into `ghcr.io/polarn/volvo-exporter` by `.github/workflows/build.yml` on every push to `main` that touches it, or locally with `go build ./cmd/volvo-exporter`.
 
 ## volvo-ctl
 A CLI for Volvo's cloud API (Energy API v2) that reports an EV's battery/charging state. `volvo-ctl waybar` emits one JSON line for a Waybar custom module (run it with `"interval"`, not as a daemon). With `VOLVO_EXPORTER_URL` set, `status`, `location` and `waybar` read volvo-exporter's `/state` instead of calling the API, so the desktop never competes for the refresh token.

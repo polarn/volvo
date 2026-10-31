@@ -19,7 +19,7 @@ Packages:
 ## Where it is wired up
 
 - chezmoi (`~/.local/share/chezmoi`): `dot_config/waybar/modules/volvo.jsonc` runs `volvo-ctl waybar`; `run_onchange_install-waybar-modules.sh` has the `go install github.com/polarn/volvo/cmd/volvo-ctl@latest` line; pill colours are in `dot_config/waybar/style.css` keyed `#custom-volvo.<class>`.
-- `polarn/container-images/volvo-exporter/Dockerfile` builds the exporter from a pinned `SRC_REF` of this repo. Shipping a change means bumping that SHA and re-pinning the resulting digest in `polarn/flux` (`apps/microk8s/volvo-exporter`).
+- The `Dockerfile` here builds the exporter. `.github/workflows/build.yml` pushes `ghcr.io/polarn/volvo-exporter:<sha>` (and `:latest`) on every push to `main` that touches the exporter, `pkg/`, the module files or the Dockerfile, and prints the digest in the run summary; a PR builds without pushing. Shipping a change means merging it and re-pinning that digest in `polarn/flux` (`apps/microk8s/volvo-exporter`), which is a deploy. The image runs as 65532 to satisfy the manifests' `runAsNonRoot`; the token file lives on the PVC at `/data`, not in the image.
 
 ## Building
 

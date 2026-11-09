@@ -89,13 +89,26 @@ func TestPollAndCollect(t *testing.T) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}
 	}
-	for _, absent := range []string{"volvo_charging_power_watts", "hazardLightsWarning", "volvo_engine_running"} {
+	for _, absent := range []string{"volvo_charging_power_watts", "hazardLightsWarning", "volvo_engine_running", "volvo_session_expiry"} {
 		if strings.Contains(out, absent) {
 			t.Errorf("%s should be absent", absent)
 		}
 	}
 	if strings.Count(out, "# TYPE volvo_open gauge") != 1 {
 		t.Error("volvo_open family split")
+	}
+}
+
+func TestSessionExpiryMetric(t *testing.T) {
+	srv := api(t, func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, energyBody) })
+	p := testPoller(t, srv, noRefresh(t))
+	err := p.client.Store.Save(&volvo.Tokens{AccessToken: "AT", RefreshToken: "R1", Expiry: time.Now().Add(time.Hour), RefreshExpiry: time.Unix(1793044800, 0)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.poll()
+	if out := collect(p.view()); !strings.Contains(out, "volvo_session_expiry_timestamp_seconds 1.7930448e+09\n") {
+		t.Errorf("missing session expiry in:\n%s", out)
 	}
 }
 

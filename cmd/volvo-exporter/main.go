@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"log"
 	"maps"
 	"net/http"
@@ -50,6 +51,9 @@ func main() {
 	}
 	if cfg.RedirectURI == "" {
 		log.Fatal("volvo-exporter: config has no redirect_uri")
+	}
+	if cfg.Legacy() {
+		log.Print("volvo-exporter: " + volvo.LegacyClientWarning)
 	}
 	interval := 5 * time.Minute
 	if v := os.Getenv("VOLVO_INTERVAL"); v != "" {
@@ -139,6 +143,7 @@ type view struct {
 	lastOK     time.Time
 	lastErr    error
 	retryUntil time.Time
+	sessionEnd time.Time
 	polls      map[string]float64
 	softErrors float64
 	fastOK     float64
@@ -258,7 +263,7 @@ func loginNeeded(err error) error {
 	if !errors.Is(err, volvo.ErrNoTokens) {
 		why = "refresh token rejected" + strings.TrimPrefix(err.Error(), volvo.ErrReauthNeeded.Error())
 	}
-	return errors.New(why + "; log in through /auth on port 20999 (kubectl port-forward)")
+	return errors.New(why + "; log in through /auth on port 20999 (kubectl port-forward) and tick Remember me")
 }
 
 func (p *poller) poll() time.Duration {
@@ -280,6 +285,10 @@ func (p *poller) poll() time.Duration {
 	p.v.lastPoll = now
 	p.v.lastErr = err
 	p.v.retryUntil = time.Time{}
+	p.v.sessionEnd = time.Time{}
+	if t, err := p.client.Store.Load(); err == nil {
+		p.v.sessionEnd = t.RefreshExpiry
+	}
 
 	var rl *volvo.RateLimitError
 	result := "error"
@@ -376,6 +385,11 @@ func newAuthMux(cfg *volvo.Config, store *volvo.TokenStore, kick chan<- struct{}
 		}
 		log.Print("volvo-exporter: login complete, new tokens saved")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if warn := tok.ShortSessionWarning(time.Now()); warn != "" {
+			log.Print("volvo-exporter: " + warn)
+			fmt.Fprintf(w, "<html><body><p>volvo-exporter is logged in, but %s.</p></body></html>", html.EscapeString(warn))
+			return
+		}
 		fmt.Fprint(w, "<html><body><p>volvo-exporter is logged in. You can close this tab and stop the port-forward.</p></body></html>")
 	})
 	return mux

@@ -140,6 +140,9 @@ func collect(v view) string {
 	if !v.lastOK.IsZero() {
 		e.gauge("volvo_last_success_timestamp_seconds", "When a poll last read the energy state.", float64(v.lastOK.Unix()))
 	}
+	if !v.sessionEnd.IsZero() {
+		e.gauge("volvo_session_expiry_timestamp_seconds", "When the Volvo ID session behind the refresh token ends, as the token endpoint reported it; log in again through /auth before then.", float64(v.sessionEnd.Unix()))
+	}
 	for _, r := range []string{"ok", "reauth", "rate_limited", "error"} {
 		e.counter("volvo_polls_total", "Polls by result, since the exporter started.", v.polls[r], "result", r)
 	}

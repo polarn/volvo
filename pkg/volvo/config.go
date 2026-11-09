@@ -20,9 +20,13 @@ const (
 	// exactly: http://localhost:20999/callback
 	DefaultRedirectPort = 20999
 
-	apiBase      = "https://api.volvocars.com"
-	authorizeURL = "https://volvoid.eu.volvocars.com/as/authorization.oauth2"
-	tokenURL     = "https://volvoid.eu.volvocars.com/as/token.oauth2"
+	apiBase            = "https://api.volvocars.com"
+	authorizeURL       = "https://auth.volvocars.com/realms/volvocars/protocol/openid-connect/auth"
+	tokenURL           = "https://auth.volvocars.com/realms/volvocars/protocol/openid-connect/token"
+	legacyAuthorizeURL = "https://volvoid.eu.volvocars.com/as/authorization.oauth2"
+	legacyTokenURL     = "https://volvoid.eu.volvocars.com/as/token.oauth2"
+
+	LegacyClientWarning = "client_id is a pre-migration dc- app, which Volvo ID stops accepting after 31 January 2027; publish a vid-dc- app on developer.volvocars.com and log in again"
 
 	// scopes covers VIN discovery, the Energy API v2 reads, the
 	// Location API, and the Connected Vehicle v2 read endpoints. The
@@ -54,9 +58,18 @@ type Config struct {
 	// RedirectURI is the redirect URI registered on the portal app. The
 	// portal no longer accepts localhost URIs, so this is a public page
 	// that forwards the callback query string to the localhost listener
-	// (docs/volvo-callback in polarn/waybar-modules, served via GitHub Pages). Empty
+	// (docs/callback, served via GitHub Pages). Empty
 	// → the legacy http://localhost:<port>/callback.
 	RedirectURI string `json:"redirect_uri,omitempty"`
+}
+
+func (c *Config) Legacy() bool { return !strings.HasPrefix(c.ClientID, "vid-") }
+
+func (c *Config) endpoints() (authorize, token string) {
+	if c.Legacy() {
+		return legacyAuthorizeURL, legacyTokenURL
+	}
+	return authorizeURL, tokenURL
 }
 
 // CallbackPort is the localhost port the login callback is served on.

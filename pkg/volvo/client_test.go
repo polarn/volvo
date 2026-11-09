@@ -602,3 +602,44 @@ func TestAuthRequestCallback(t *testing.T) {
 		t.Error("forged state accepted")
 	}
 }
+
+func TestEndpointsFollowClientID(t *testing.T) {
+	for _, tc := range []struct{ id, base string }{
+		{"vid-dc-abc", "https://auth.volvocars.com/realms/volvocars/protocol/openid-connect/"},
+		{"dc-abc", "https://volvoid.eu.volvocars.com/as/"},
+	} {
+		cfg := &Config{ClientID: tc.id, ClientSecret: "s", VccAPIKey: "k"}
+		ar, err := NewAuthRequest(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.HasPrefix(ar.URL, tc.base+"auth") {
+			t.Errorf("%s: authorize URL %s, want under %s", tc.id, ar.URL, tc.base)
+		}
+		if c := NewClient(cfg, nil); !strings.HasPrefix(c.TokenURL, tc.base+"token") {
+			t.Errorf("%s: token URL %s, want under %s", tc.id, c.TokenURL, tc.base)
+		}
+	}
+}
+
+func TestRefreshExpiresIn(t *testing.T) {
+	for _, tc := range []struct {
+		refreshIn string
+		short     bool
+	}{
+		{`,"refresh_expires_in":1800`, true},
+		{`,"refresh_expires_in":7776000`, false},
+		{``, false},
+	} {
+		tok, err := parseTokenResponse([]byte(`{"access_token":"A","refresh_token":"R","expires_in":300` + tc.refreshIn + `}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tc.refreshIn == "" && !tok.RefreshExpiry.IsZero() {
+			t.Errorf("RefreshExpiry = %s with no refresh_expires_in", tok.RefreshExpiry)
+		}
+		if got := tok.ShortSessionWarning(time.Now()) != ""; got != tc.short {
+			t.Errorf("%q: short-session warning %v, want %v", tc.refreshIn, got, tc.short)
+		}
+	}
+}

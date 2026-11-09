@@ -22,7 +22,7 @@ import (
 // catch the redirect on a localhost callback server. The redirect URI
 // must be registered verbatim on the developer-portal application; the
 // portal bans localhost URIs, so cfg.RedirectURI normally points at a
-// public forwarding page (docs/volvo-callback in polarn/waybar-modules)
+// public forwarding page (docs/callback, served by GitHub Pages)
 // that bounces the browser on to the localhost listener.
 func Authenticate(cfg *Config, openBrowser bool) (*Tokens, error) {
 	ar, err := NewAuthRequest(cfg)
@@ -93,6 +93,7 @@ func NewAuthRequest(cfg *Config) (*AuthRequest, error) {
 	if err != nil {
 		return nil, fmt.Errorf("generate state: %w", err)
 	}
+	authURL, _ := cfg.endpoints()
 	redirect := fmt.Sprintf("http://localhost:%d/callback", cfg.CallbackPort())
 	if cfg.RedirectURI != "" {
 		redirect = cfg.RedirectURI
@@ -107,7 +108,7 @@ func NewAuthRequest(cfg *Config) (*AuthRequest, error) {
 	q.Set("code_challenge", codeChallenge(verifier))
 	q.Set("code_challenge_method", "S256")
 	return &AuthRequest{
-		URL:      authorizeURL + "?" + q.Encode(),
+		URL:      authURL + "?" + q.Encode(),
 		State:    state,
 		verifier: verifier,
 		redirect: redirect,
@@ -144,7 +145,8 @@ func exchangeCode(cfg *Config, code, verifier, redirect string) (*Tokens, error)
 	form.Set("redirect_uri", redirect)
 	form.Set("code_verifier", verifier)
 
-	req, err := http.NewRequest(http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
+	_, tokURL := cfg.endpoints()
+	req, err := http.NewRequest(http.MethodPost, tokURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return nil, err
 	}

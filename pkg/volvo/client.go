@@ -57,11 +57,12 @@ type Client struct {
 
 // NewClient wires a Client from config and token store.
 func NewClient(cfg *Config, store *TokenStore) *Client {
+	_, tokURL := cfg.endpoints()
 	return &Client{
 		Config:   cfg,
 		Store:    store,
 		BaseURL:  apiBase,
-		TokenURL: tokenURL,
+		TokenURL: tokURL,
 		HTTP:     &http.Client{Timeout: 10 * time.Second},
 	}
 }
@@ -438,6 +439,7 @@ func parseTokenResponse(body []byte) (*Tokens, error) {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
 		ExpiresIn    int    `json:"expires_in"`
+		RefreshIn    int    `json:"refresh_expires_in"`
 	}
 	if err := json.Unmarshal(body, &out); err != nil {
 		return nil, fmt.Errorf("parse token response: %w", err)
@@ -445,11 +447,16 @@ func parseTokenResponse(body []byte) (*Tokens, error) {
 	if out.AccessToken == "" || out.RefreshToken == "" {
 		return nil, fmt.Errorf("token response missing tokens: %s", truncate(body, 200))
 	}
-	return &Tokens{
+	now := time.Now()
+	t := &Tokens{
 		AccessToken:  out.AccessToken,
 		RefreshToken: out.RefreshToken,
-		Expiry:       time.Now().Add(time.Duration(out.ExpiresIn) * time.Second),
-	}, nil
+		Expiry:       now.Add(time.Duration(out.ExpiresIn) * time.Second),
+	}
+	if out.RefreshIn > 0 {
+		t.RefreshExpiry = now.Add(time.Duration(out.RefreshIn) * time.Second)
+	}
+	return t, nil
 }
 
 func basicCredentials(cfg *Config) string {

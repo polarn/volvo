@@ -14,7 +14,7 @@ Packages:
 - `pkg/volvo/` - Volvo cloud client: OAuth with PKCE + rotating refresh token, Energy/Connected Vehicle/Location APIs
 - `pkg/waybar/` - The `Waybar` struct with JSON output and `Print()`. A copy of the one in waybar-modules (30 lines); copying it beat a cross-module dependency on `@latest` that lags behind the proxy.
 
-**The OAuth redirect page is not here.** `https://polarn.github.io/waybar-modules/volvo-callback/` is the registered redirect URI of the published Volvo app, fixed at publication, and is served from `docs/volvo-callback/` in `polarn/waybar-modules`. That is why that repo keeps its name and that directory; moving the page means publishing a new Volvo app.
+**The OAuth redirect page** is `docs/callback/`, which GitHub Pages serves from `main` `/docs` at `https://polarn.github.io/volvo/callback/`, the redirect URI registered on the `vid-dc-` Volvo app. A redirect URI is fixed at publication, so moving or renaming that path means publishing a new Volvo app. The old `dc-` app is registered to the copy at `polarn.github.io/waybar-modules/volvo-callback/`, which has to stay up until that app's 31 January 2027 cutoff.
 
 ## Where it is wired up
 
@@ -44,7 +44,13 @@ Shutdown waits up to 25 s for an in-flight poll rather than cancelling it: a ref
 
 ### Login
 
-`/auth` and `/callback` listen on `127.0.0.1:20999` inside the pod, so they are reachable only through `kubectl port-forward`, which matches the hardcoded target of the `docs/volvo-callback` forwarding page in waybar-modules. Run `kubectl -n volvo-exporter port-forward deploy/volvo-exporter 20999`, open `http://localhost:20999/auth`, and log in; the callback saves the tokens and triggers an immediate poll. `volvo_auth_ok` goes to 0 when the refresh token is rejected, and the poller keeps re-reading `tokens.json` at the normal interval. It logs the login hint once, not on every poll, and words it for `/auth` rather than the `volvo-ctl auth` that `pkg/volvo`'s errors suggest.
+`/auth` and `/callback` listen on `127.0.0.1:20999` inside the pod, so they are reachable only through `kubectl port-forward`, which matches the hardcoded target of the `docs/callback` forwarding page. Run `kubectl -n volvo-exporter port-forward deploy/volvo-exporter 20999`, open `http://localhost:20999/auth`, and log in; the callback saves the tokens and triggers an immediate poll. `volvo_auth_ok` goes to 0 when the refresh token is rejected, and the poller keeps re-reading `tokens.json` at the normal interval. It logs the login hint once, not on every poll, and words it for `/auth` rather than the `volvo-ctl auth` that `pkg/volvo`'s errors suggest.
+
+### Volvo ID (Keycloak)
+
+Volvo ID moved to Keycloak at `auth.volvocars.com/realms/volvocars`, and the old `volvoid.eu.volvocars.com` server and its `dc-` clients stop working after 31 January 2027. `Config.Legacy()` routes by client ID: `vid-` apps use Keycloak, anything else the old server, and both binaries warn about a `dc-` app. Delete the legacy branch after the cutoff. Tokens don't carry over, so a new app means a new login.
+
+A Keycloak refresh token is bound to the SSO session, not to the last refresh. Without **Remember me** ticked on the login page the session ends about an hour after login however often the exporter refreshes; with it, `refresh_expires_in` is 90 days and did not move across refreshes in reports, so expect a fresh login every 90 days. `offline_access` would avoid that, but the portal does not offer it and Keycloak answers `invalid_scope`. The token response's `refresh_expires_in` is stored as `refresh_expiry`, exported as `volvo_session_expiry_timestamp_seconds`, and a login with under a day left logs a warning and says so on the callback page.
 
 ### Polling and quota
 

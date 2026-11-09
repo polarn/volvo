@@ -3,6 +3,7 @@ package volvo
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -20,9 +21,18 @@ var ErrReauthNeeded = errors.New("volvo: refresh token rejected — run 'volvo-c
 // Tokens is the persisted OAuth state. Expiry is absolute, computed from
 // the token response's expires_in at save time.
 type Tokens struct {
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token"`
-	Expiry       time.Time `json:"expiry"`
+	AccessToken   string    `json:"access_token"`
+	RefreshToken  string    `json:"refresh_token"`
+	Expiry        time.Time `json:"expiry"`
+	RefreshExpiry time.Time `json:"refresh_expiry,omitzero"`
+}
+
+func (t *Tokens) ShortSessionWarning(now time.Time) string {
+	left := t.RefreshExpiry.Sub(now)
+	if t.RefreshExpiry.IsZero() || left >= 24*time.Hour {
+		return ""
+	}
+	return fmt.Sprintf("Volvo ID ends this login's session in %s; log in again and tick Remember me on the Volvo ID page for a long one", left.Round(time.Minute))
 }
 
 // Valid reports whether the access token is still usable, with a 60s

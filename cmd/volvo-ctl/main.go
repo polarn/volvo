@@ -171,6 +171,9 @@ func cmdAuth(args []string) {
 		cfg.RedirectPort = redirectPort
 	}
 
+	if cfg.Legacy() {
+		fmt.Fprintln(os.Stderr, "warning: "+volvo.LegacyClientWarning)
+	}
 	tok, err := volvo.Authenticate(cfg, !noBrowser)
 	if err != nil {
 		fatal("auth: %v", err)
@@ -180,6 +183,9 @@ func cmdAuth(args []string) {
 		fatal("save tokens: %v", err)
 	}
 	fmt.Println("Authenticated.")
+	if warn := tok.ShortSessionWarning(time.Now()); warn != "" {
+		fmt.Fprintln(os.Stderr, "warning: "+warn)
+	}
 
 	c := volvo.NewClient(cfg, store)
 	vins, err := c.Vehicles()
@@ -715,7 +721,7 @@ Global flags (all subcommands):
 
 Config file ($HOME/.config/volvo/config.json, chmod 600):
   {"client_id": "...", "client_secret": "...", "vcc_api_key": "...",
-   "redirect_uri": "https://<your-pages>/volvo-callback/", "vin": "..."}
+   "redirect_uri": "https://<your-pages>/callback/", "vin": "..."}
   redirect_uri is the public forwarding page registered on the portal app
   (the portal bans localhost); omit it only for apps registered with the
   legacy http://localhost:20999/callback.`)
